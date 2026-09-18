@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="supported-color-schemes" content="dark light" />
+  <title>Your Weekly Producer Insights</title>
+  <style>
+    /* Base Resets & Fluid Typography */
+    body { margin: 0; padding: 0; width: 100% !important; background-color: #09090c; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+
+    /* Dark Mode Inversion Guard Rails */
+    :root {
+      color-scheme: dark light;
+      supported-color-schemes: dark light;
+    }
+    @media (prefers-color-scheme: dark) {
+      body, .bg-body { background-color: #09090c !important; }
+      .bg-card { background-color: #0f0f14 !important; }
+      .border-divider { border-color: #1a1a22 !important; }
+      .text-heading { color: #ffffff !important; }
+      .text-muted { color: #9ca3af !important; }
+      .text-brand { color: #a78bfa !important; }
+    }
+    /* Outlook Specific Overrides */
+    [data-ogsc] body, [data-ogsc] .bg-body { background-color: #09090c !important; }
+    [data-ogsc] .bg-card { background-color: #0f0f14 !important; }
+    [data-ogsc] .border-divider { border-color: #1a1a22 !important; }
+    [data-ogsc] .text-heading { color: #ffffff !important; }
+    [data-ogsc] .text-muted { color: #9ca3af !important; }
+    [data-ogsc] .text-brand { color: #a78bfa !important; }
+
+    /* Responsive Mobile Styles */
+    @media only screen and (max-width: 600px) {
+      .wrapper-card { width: 100% !important; max-width: 100% !important; border-left: 0 !important; border-right: 0 !important; }
+      
+      /* Stack columns to 100% width */
+      .stack-column { display: block !important; width: 100% !important; max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+      
+      /* Scale images */
+      .responsive-img { width: 100% !important; height: auto !important; max-width: 100% !important; }
+      .chart-container { text-align: center !important; padding-top: 15px !important; padding-bottom: 15px !important; }
+      
+      /* Format KPIs to 2x2 Grid on Mobile */
+      .kpi-block { display: inline-block !important; width: 50% !important; box-sizing: border-box !important; padding: 12px 0 !important; }
+      .kpi-border-right { border-right: 1px solid #1a1a22 !important; }
+      .kpi-border-bottom { border-bottom: 1px solid #1a1a22 !important; }
+      .kpi-border-none { border-right: none !important; }
+
+      /* Spacing adjustments */
+      .mobile-p-top { padding-top: 24px !important; }
+      .mobile-border-top { border-top: 1px solid #1a1a22 !important; }
+      .hide-mobile { display: none !important; }
+      
+      /* Center alignment for mobile */
+      .wrapper-card td { text-align: center !important; }
+      .wrapper-card table { margin: 0 auto !important; }
+      .stack-column { text-align: center !important; }
+    }
+  </style>
+</head>
+<body class="bg-body" style="margin:0;padding:0;width:100%;background-color:#09090c;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-body" bgcolor="#09090c" style="table-layout:fixed;">
+  <tr>
+    <td align="center" style="padding: 20px 0;">
+      
+      <table class="wrapper-card bg-card border-divider" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%; margin:0 auto; background-color:#0f0f14; border:1px solid #1a1a22; border-collapse:collapse;">
+        
+        <tr><td height="4" bgcolor="#7C3AED" style="font-size:0;line-height:0;"></td></tr>
+
+        <tr>
+          <td class="border-divider" style="padding:14px 20px;border-bottom:1px solid #1a1a22;">
+            <img src="https://cdn.illpeoplemusic.com/imgs/logo-main.png" width="95" alt="Beat22" style="display:block;border:0;" />
+          </td>
+        </tr>
+
+        <tr>
+          <td class="border-divider" style="padding:20px;border-bottom:1px solid #1a1a22;">
+            <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;letter-spacing:-0.02em;">
+              Performance Insights Overview
+            </span><br><br>
+            <span class="text-muted" style="color:#9ca3af;font-size:13px;line-height:1.5;">
+              Here is your weekly beat store breakdown. Track your plays, check your top-performing beats, and see how artists are engaging with your catalog to plan your next drop.
+            </span>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <img src="https://ip-dev.s3.ap-south-1.amazonaws.com/EXTRAS/Email+Graphics/weeklybanner.png" class="responsive-img" width="600" style="display:block;width:100%;max-width:600px;height:auto;object-fit:cover;border:0;" alt="Analytics Header" />
+          </td>
+        </tr>
+
+        <tr>
+          <td class="border-divider" style="padding:16px 20px;border-bottom:1px solid #1a1a22;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td vertical-align="middle" style="vertical-align:middle;">
+                  <table cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="padding-right:12px;vertical-align:middle;">
+                        {% if profile_picture %}
+                        <img src="{{ profile_picture }}" width="44" height="44" style="display:block;border-radius:50%;border:0;" alt="Avatar" />
+                        {% else %}
+                        <img src="https://i.pravatar.cc/100?img=25" width="44" height="44" style="display:block;border-radius:50%;border:0;" alt="Avatar" />
+                        {% endif %}
+                      </td>
+                      <td style="vertical-align:middle;line-height:1.4;">
+                        <span class="text-heading" style="color:#ffffff;font-size:14px;font-weight:bold;display:block;">{{ name | default('User') }}</span>
+                        {% if handle %}
+                        <span class="text-brand" style="color:#a78bfa;font-size:12px;display:block;font-weight:500;">{{ handle }}</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td align="right" vertical-align="middle" style="vertical-align:middle;line-height:1.3;">
+                  <span class="text-brand" style="color:#a78bfa;font-size:11px;font-weight:bold;letter-spacing:0.05em;display:block;">WEEKLY REPORT</span>
+                  <span class="text-muted" style="color:#9ca3af;font-size:12px;display:block;">{{ week_start | default('') }} – {{ week_end | default('') }}</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="border-divider" style="border-bottom:1px solid #1a1a22;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="font-size:0;">
+                  <div class="stack-column kpi-block kpi-border-right kpi-border-bottom" style="display:inline-block; width:25%; vertical-align:middle; padding:18px 0;">
+                    <span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:4px;">UPLOADS</span>
+                    <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;">{{ weekly_uploads | default(0) }}</span>
+                    {% if uploads_change %}
+                      {% if '-' in uploads_change %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#ef4444;">{{ uploads_change }}</span>
+                      {% else %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#2cbb14;">{{ uploads_change }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                  <div class="stack-column kpi-block kpi-border-right kpi-border-bottom kpi-border-none" style="display:inline-block; width:25%; vertical-align:middle; padding:18px 0;">
+                    <span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:4px;">PLAYS</span>
+                    <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;">{{ weekly_plays | default(0) }}</span>
+                    {% if plays_change %}
+                      {% if '-' in plays_change %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#ef4444;">{{ plays_change }}</span>
+                      {% else %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#2cbb14;">{{ plays_change }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                  <div class="stack-column kpi-block kpi-border-right" style="display:inline-block; width:25%; vertical-align:middle; padding:18px 0;">
+                    <span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:4px;">DOWNLOADS</span>
+                    <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;">{{ weekly_downloads | default(0) }}</span>
+                    {% if downloads_change %}
+                      {% if '-' in downloads_change %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#ef4444;">{{ downloads_change }}</span>
+                      {% else %}
+                      <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#2cbb14;">{{ downloads_change }}</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                  <div class="stack-column kpi-block" style="display:inline-block; width:25%; vertical-align:middle; padding:18px 0;">
+                    {% if weekly_cart_adds and weekly_cart_adds > 0 %}
+                      <span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:4px;">ATC</span>
+                      <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;">{{ weekly_cart_adds }}</span>
+                    {% else %}
+                      <span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:4px;">LIKES</span>
+                      <span class="text-heading" style="color:#ffffff;font-size:18px;font-weight:bold;">{{ weekly_likes | default(0) }}</span>
+                      {% if likes_change %}
+                        {% if '-' in likes_change %}
+                        <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#ef4444;">{{ likes_change }}</span>
+                        {% else %}
+                        <span style="font-size:10px;font-weight:bold;display:block;margin-top:2px;color:#2cbb14;">{{ likes_change }}</span>
+                        {% endif %}
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        {% if (featured_playlist_beats and featured_playlist_beats|length > 0) or (trending_beats and trending_beats|length > 0) %}
+        <tr>
+          <td style="padding:16px 16px 8px; border-top:1px solid #1a1a22;">
+            <span class="text-brand" style="color:#a78bfa;font-size:14px;font-weight:bold;letter-spacing:-0.01em;">Your beats are making waves!</span>
+            <p class="text-muted" style="color:#9ca3af;font-size:12px;margin:4px 0 0 0;line-height:1.4;">Here are your top placements recognizing your production this week:</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="border-divider" style="border-bottom:1px solid #1a1a22; font-size:0; text-align:center;">
+            
+            <div class="stack-column kpi-block kpi-border-right" style="display:inline-block; width:50%; vertical-align:top; padding:18px 0; box-sizing:border-box;">
+              {% if featured_playlist_beats and featured_playlist_beats|length > 0 %}
+                <span class="text-brand" style="color:#a78bfa;font-size:11px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:12px;">FEATURED PLAYLISTS</span>
+                {% for beat in featured_playlist_beats[:2] %}
+                  <div style="padding: 6px 12px; text-align:left;">
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td width="40"><img src="{{ beat.cover | default('https://picsum.photos/40?1') }}" width="40" height="40" style="display:block;border-radius:4px;" alt="Cover" /></td>
+                        <td class="text-heading" style="color:#ffffff;font-size:13px;font-weight:bold;padding-left:10px;">{{ beat.title }}</td>
+                      </tr>
+                    </table>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <span class="text-brand" style="color:#a78bfa;font-size:11px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:12px;">FEATURED PLAYLISTS</span>
+                <span class="text-muted" style="color:#9ca3af;font-size:12px;">No placements</span>
+              {% endif %}
+            </div><div class="stack-column kpi-block mobile-border-top" style="display:inline-block; width:50%; vertical-align:top; padding:18px 0; box-sizing:border-box;">
+              {% if trending_beats and trending_beats|length > 0 %}
+                <span class="text-brand" style="color:#a78bfa;font-size:11px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:12px;">TRENDING PAGE</span>
+                {% for beat in trending_beats[:2] %}
+                  <div style="padding: 6px 12px; text-align:left;">
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td width="40"><img src="{{ beat.cover | default('https://picsum.photos/40?3') }}" width="40" height="40" style="display:block;border-radius:4px;" alt="Cover" /></td>
+                        <td class="text-heading" style="color:#ffffff;font-size:13px;font-weight:bold;padding-left:10px;">{{ beat.title }}</td>
+                      </tr>
+                    </table>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <span class="text-brand" style="color:#a78bfa;font-size:11px;font-weight:bold;letter-spacing:0.05em;display:block;margin-bottom:12px;">TRENDING PAGE</span>
+                <span class="text-muted" style="color:#9ca3af;font-size:12px;">No placements</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+
+        {% if distribution_chart_url or top_beats_chart_url %}
+        <tr>
+          <td class="border-divider" style="padding:20px 16px 24px; border-bottom:1px solid #1a1a22; font-size:0; text-align:center;">
+            
+            {% if distribution_chart_url %}
+            <div class="stack-column chart-container" style="display:inline-block; width:100%; max-width:280px; vertical-align:top; text-align:left;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="color:#a78bfa;font-size:13px;font-weight:bold;letter-spacing:-0.01em;padding-bottom:16px;">Top Played Genres</td>
+                </tr>
+                <tr>
+                  <td>
+                    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td width="35%" style="font-size:12px;color:#cbd5f5;line-height:1.7;vertical-align:middle;">
+                          <span style="color:#7C3AED;font-size:14px;">●</span> Trap<br>
+                          <span style="color:#2cbb14;font-size:14px;">●</span> Drill<br>
+                          <span style="color:#ffdd00;font-size:14px;">●</span> R&B<br>
+                          <span style="color:#ef4444;font-size:14px;">●</span> LoFi
+                        </td>
+                        <td width="65%" style="vertical-align:middle;text-align:right;">
+                          <img class="responsive-img" src="{{ distribution_chart_url }}" width="160" style="display:inline-block;vertical-align:middle;border:0;max-width:200px;" alt="Genre Chart" />
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            {% endif %}
+
+            {% if top_beats_chart_url %}
+            <div class="stack-column chart-container mobile-p-top mobile-border-top border-divider" style="display:inline-block; width:100%; max-width:280px; vertical-align:top; text-align:left;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td class="align-left-mobile" style="text-align:center;color:#a78bfa;font-size:13px;font-weight:bold;letter-spacing:-0.01em;padding-bottom:16px;">Top Played Items</td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <img class="responsive-img" src="{{ top_beats_chart_url }}" width="240" style="display:block;border:0;width:100%;max-width:280px;height:auto;" alt="Top Items Chart" />
+                  </td>
+                </tr>
+              </table>
+            </div>
+            {% endif %}
+
+            </td>
+        </tr>
+        {% endif %}
+
+        {% if comparison_chart_url %}
+        <tr>
+          <td class="border-divider" style="padding:20px 16px;border-bottom:1px solid #1a1a22;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td class="stack-column align-left-mobile" width="40%" style="vertical-align:bottom;padding-bottom:8px;">
+                  <span class="text-brand" style="color:#a78bfa;font-size:13px;font-weight:bold;display:block;">Activity Trend</span>
+                </td>
+                <td class="stack-column align-left-mobile" width="60%" align="right" style="font-size:11px;color:#cbd5f5;vertical-align:bottom;padding-bottom:8px;">
+                  <span style="color:#2cbb14;">●</span> Plays &nbsp;&nbsp;
+                  <span style="color:#ffdd00;">●</span> Downloads &nbsp;&nbsp;
+                  <span style="color:#ef4444;">●</span> Uploads
+                </td>
+              </tr>
+            </table>
+            
+            <p class="text-muted" style="color:#9ca3af;font-size:12px;margin:0 0 16px 0;line-height:1.4;">See how your drops correlate with streams and beat leases across the week.</p>
+            
+            <img src="{{ comparison_chart_url }}" class="responsive-img" width="568" style="display:block;width:100%;max-width:568px;height:auto;border:0;" alt="Activity Line Graph" />
+          </td>
+        </tr>
+        {% endif %}
+
+        <tr>
+          <td class="border-divider" style="padding:20px 16px;border-bottom:1px solid #1a1a22;">
+            <span class="text-brand" style="color:#a78bfa;font-size:13px;font-weight:bold;display:block;margin-bottom:2px;">Studio Overview</span>
+            <span class="text-muted" style="color:#9ca3af;font-size:12px;display:block;margin-bottom:16px;line-height:1.4;">A real-time snapshot of your beat store's current standing and listener reach.</span>
+
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr align="center">
+                <td class="stack-column kpi-block" style="padding:10px 0;"><span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;">ACTIVE ITEMS</span><br><span class="text-heading" style="color:#ffffff;font-size:16px;font-weight:bold;display:block;margin-top:4px;">{{ active_beats | default(0) }}</span></td>
+                <td class="stack-column kpi-block" style="padding:10px 0;"><span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;">FOLLOWERS</span><br><span class="text-heading" style="color:#ffffff;font-size:16px;font-weight:bold;display:block;margin-top:4px;">{{ follower_count | default(0) }}</span></td>
+                <td class="stack-column kpi-block" style="padding:10px 0;"><span class="text-muted" style="color:#9ca3af;font-size:10px;font-weight:bold;letter-spacing:0.05em;">NEGOTIATIONS</span><br><span class="text-heading" style="color:#ffffff;font-size:16px;font-weight:bold;display:block;margin-top:4px;">{{ weekly_negotiations | default(0) }}</span></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:26px 20px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#7C3AED" style="border-radius:4px;">
+                  <a href="https://beat22.com/dashboard" target="_blank" style="font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;padding:12px 32px;display:inline-block;letter-spacing:0.02em;">
+                    Go to Dashboard
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="border-divider bg-card" style="padding:30px 40px;background-color:#0f0f14;border-top:1px solid #1a1a22;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle; width:50%; text-align:left;">
+                  <table cellpadding="0" cellspacing="0" border="0" align="left">
+                    <tr>
+                      <td style="padding-right:12px;"><a href="https://x.com/beat22__" target="_blank"><img src="https://cdn.illpeoplemusic.com/imges/imgs/twitter-icon.png" width="16" height="16" alt="Twitter" style="display:block;border:0;" /></a></td>
+                      <td style="padding-right:12px;"><a href="https://www.facebook.com/Beat22app/" target="_blank"><img src="https://cdn.illpeoplemusic.com/imges/imgs/facebook-icon.png" width="16" height="16" alt="Facebook" style="display:block;border:0;" /></a></td>
+                      <td><a href="https://www.instagram.com/beat22__/" target="_blank"><img src="https://cdn.illpeoplemusic.com/imges/imgs/instagram-icon.png" width="16" height="16" alt="Instagram" style="display:block;border:0;" /></a></td>
+                    </tr>
+                  </table>
+                </td>
+                <td align="right" style="vertical-align:middle; width:50%; text-align:right; font-size:12px; color:#9ca3af;">
+                  <a href="mailto:support@beat22.com" style="color:#9ca3af;text-decoration:none;">support@beat22.com</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr><td height="4" bgcolor="#7000FF" style="font-size:0;line-height:0;"></td></tr>
+
+      </table>
+
+      </td>
+  </tr>
+</table>
+
+</body>
+</html>

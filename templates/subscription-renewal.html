@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscription Renewal Reminder</title>
+</head>
+
+<body style="margin:0;padding:0;background:#0b0b0f;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0b0b0f">
+    <tr>
+      <td align="center">
+
+        <table width="640" cellpadding="0" cellspacing="0" border="0"
+          style="max-width:640px;width:100%;background:#111116;border-collapse:collapse;">
+
+          <!-- Top Accent -->
+          <tr>
+            <td height="4" bgcolor="#7000FF"></td>
+          </tr>
+
+          <!-- Logo -->
+          <tr>
+            <td style="padding:36px 40px 24px 40px;">
+              <img src="https://cdn.illpeoplemusic.com/imgs/logo-main.png"
+                width="120"
+                alt="Beat22"
+                style="display:block;border:0;" />
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td height="1" bgcolor="#1f1f26"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:40px 40px 24px 40px;font-family:Arial,Helvetica,sans-serif;">
+
+              <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#9040ff;margin-bottom:14px;">
+                SUBSCRIPTION REMINDER
+              </div>
+
+              <div style="font-size:24px;color:#ffffff;font-weight:bold;margin-bottom:22px;">
+                Your subscription is expiring soon!
+              </div>
+
+              <div style="font-size:14px;color:#c8c8c8;line-height:1.7;margin-bottom:8px;">
+                Hey <strong style="color:#ffffff;">{{name}}</strong>,
+              </div>
+
+              <div style="font-size:14px;color:#c8c8c8;line-height:1.7;">
+                Your <strong style="color:#ffffff;">{{plan_name}}</strong> subscription is expiring soon!
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Plan Details Card -->
+          <tr>
+            <td style="padding:0 40px 24px 40px;">
+
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="background:#1a1a22;border-radius:6px;">
+
+                <!-- Details rows -->
+                <tr>
+                  <td style="padding:20px 24px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #2a2a34;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="text-align:left;font-size:13px;color:#9a9a9a;padding-bottom:12px;">Plan</td>
+                        <td style="text-align:right;font-size:14px;color:#ffffff;padding-bottom:12px;">{{plan_name}}</td>
+                      </tr>
+                      {% if frequency %}
+                      <tr>
+                        <td style="text-align:left;font-size:13px;color:#9a9a9a;padding-bottom:12px;">Billing</td>
+                        <td style="text-align:right;font-size:14px;color:#ffffff;padding-bottom:12px;text-transform:capitalize;">{{frequency}}</td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td style="text-align:left;font-size:13px;color:#9a9a9a;padding-bottom:12px;">Expires on</td>
+                        <td style="text-align:right;font-size:14px;color:#ffffff;padding-bottom:12px;">{{expiry_date}}</td>
+                      </tr>
+                      <tr>
+                        <td style="text-align:left;font-size:13px;color:#9a9a9a;">Time left</td>
+                        <td style="text-align:right;">
+                          <span style="background:#7000FF;border-radius:4px;padding:3px 10px;color:#ffffff;font-weight:bold;font-size:13px;font-family:Arial,Helvetica,sans-serif;">
+                            {{days_left}}
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Renew message -->
+                <tr>
+                  <td style="padding:20px 24px 12px 24px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#c8c8c8;line-height:1.6;">
+                    Renew before <strong style="color:#ffffff;">{{expiry_date}}</strong> to keep unlimited access to beats, sound kits, and all your producer benefits.
+                  </td>
+                </tr>
+
+                <!-- Auto-renew note: this reminder is sent to plans that renew
+                     automatically as well as to cancelled plans running out
+                     their cycle, so it must not read as a hard expiry warning
+                     for subscribers who will simply be charged again. -->
+                <tr>
+                  <td style="padding:0 24px 20px 24px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a9ab0;line-height:1.6;">
+                    If auto-renew is switched on for your plan, it will continue automatically and no action is needed &mdash; you can ignore this reminder.
+                  </td>
+                </tr>
+
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- CTA Button -->
+          <tr>
+            <td align="center" style="padding:0 40px 16px 40px;">
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td bgcolor="#7000FF" style="border-radius:28px;">
+                    <a href="{{renewal_url}}"
+                      target="_blank"
+                      style="display:inline-block;padding:14px 30px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#ffffff;text-decoration:none;font-weight:bold;">
+                      Renew Subscription
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Manage Subscription Link -->
+          <tr>
+            <td align="center" style="padding:0 40px 40px 40px;font-family:Arial,Helvetica,sans-serif;">
+              <a href="{{renewal_url}}"
+                target="_blank"
+                style="color:#bda8ff;text-decoration:none;font-size:13px;font-weight:bold;">
+                Manage your subscription →
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:30px 40px;background:#0f0f14;border-top:1px solid #1a1a22;">
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+
+                  <td align="left">
+                    <a href="https://x.com/beat22__" style="text-decoration:none;">
+                      <img src="https://cdn.illpeoplemusic.com/imges/imgs/twitter-icon.png"
+                        width="18" style="margin-right:10px;border:0;" />
+                    </a>
+                    <a href="https://www.facebook.com/Beat22app/" style="text-decoration:none;">
+                      <img src="https://cdn.illpeoplemusic.com/imges/imgs/facebook-icon.png"
+                        width="18" style="margin-right:10px;border:0;" />
+                    </a>
+                    <a href="https://www.instagram.com/beat22__" style="text-decoration:none;">
+                      <img src="https://cdn.illpeoplemusic.com/imges/imgs/instagram-icon.png"
+                        width="18" style="border:0;" />
+                    </a>
+                  </td>
+
+                  <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#9a9a9a;">
+                    <a href="mailto:support@beat22.com" style="color:#9a9a9a;text-decoration:none;">
+                      support@beat22.com
+                    </a>
+                  </td>
+
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Bottom Accent -->
+          <tr>
+            <td height="4" bgcolor="#7000FF"></td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
