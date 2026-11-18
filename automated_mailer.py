@@ -8,6 +8,14 @@ Jobs:
   4. Negotiation 24h window reminders (every 6h, time-windowed)
   5. License renewal reminders (every 3h, time-windowed)
   6. Weekly seller performance reports (weekly, Friday 13-16 UTC / ~7-10 PM IST)
+  7. Seller upload nudges (every 3h, 48h upload-gap enforced internally)
+  8. Seller account setup nudges (day 1 / day 3, plus a Saturday 9-12 UTC sweep)
+  9. Ad campaigns stalled on an empty wallet (every 3h)
+ 10. Daily ad performance notification (daily, 14-16 UTC)
+
+SCHEDULE: these gates assume an EventBridge rule of every 3 hours aligned to
+00:00 UTC. Jobs 6 and 10 only ever match the 15:00 UTC run; on a 6-hourly
+schedule neither would fire at all.
 """
 from pymongo import MongoClient
 from pymongo.database import Database
@@ -58,7 +66,11 @@ def get_db():
 # Helper functions
 # ---------------------------------------------------------------------------
 
-def sendMail(to: str, subject: str, content_html: str) -> int:
+SENDER_MARKETING = "info@beat22.com"
+SENDER_REPORTS = "formusicians@beat22.com"
+
+
+def sendMail(to: str, subject: str, content_html: str, sender: str = SENDER_MARKETING) -> int:
     client = get_ses_client()
     try:
         response = client.send_email(
@@ -67,7 +79,7 @@ def sendMail(to: str, subject: str, content_html: str) -> int:
                 'Body': {'Html': {'Charset': "UTF-8", 'Data': content_html}},
                 'Subject': {'Charset': "UTF-8", 'Data': subject},
             },
-            Source="Beat22 <support@beat22.com>",
+            Source=f"Beat22 <{sender}>",
         )
         return 202
     except ClientError as e:
@@ -83,11 +95,14 @@ def mask_email(email: str) -> str:
     return f"{local[0]}***@{domain}"
 
 
-def safe_send_mail(to: str, subject: str, content_html: str, context: str = "") -> bool:
+def safe_send_mail(to: str, subject: str, content_html: str, context: str = "", sender: str = SENDER_MARKETING) -> bool:
     """Wraps sendMail with error handling so one failed email doesn't crash the job.
     Returns True if the email was sent successfully, False otherwise."""
     try:
-        status = sendMail(to, subject, content_html)
+        status = sendMail(to, subject, content_html, sender)
+        if status != 202:
+            print(f"  ✗ Email failed for {mask_email(to)} ({context}): status {status}")
+            return False
         print(f"  ✓ Email to {mask_email(to)} ({context}) — status: {status}")
         return True
     except Exception as e:
@@ -254,7 +269,7 @@ def send_pending_cart_mails(db: Database):
     print(f"{len(allBeatIds)} beats to query")
     
     beats = db.beats.find({"_id": {"$in":list(allBeatIds)}, "active": True, "status":"sale"}, ["_id", "serial_number", "title", "cover_picture"])
-    users = db.users.find({"_id":{"$in":list(allUserIds)}}, ["_id", "email","name", "handle", "mobile"])
+    users = db.users.find({"_id": {"$in": list(allUserIds)}, "active": {"$ne": False}}, ["_id", "email","name", "handle", "mobile"])
     # dict of beatId to beat obj
     beatsDict = {}
     for b in beats:
@@ -294,8 +309,12 @@ def send_pending_cart_mails(db: Database):
             continue
 
         ideas = "idea" if len(userBeats) == 1 else "ideas"
-        status = safe_send_mail(email, f"You left {len(userBeats)} brilliant {ideas} in your cart!", content)
-        print(f"Sent email to {mask_email(email)}, for {len(userBeats)} beats in cart. Mail send status: {status}")
+        safe_send_mail(
+            email,
+            f"You left {len(userBeats)} brilliant {ideas} in your cart!",
+            content,
+            context=f"pending-cart ({len(userBeats)} beats)"
+        )
         
         # WhatsApp notification
         mobile = userDetails.get("mobile")
@@ -439,7 +458,7 @@ def send_subscription_renewal_reminders(db: Database):
                 "days_left": days_left,
                 "expiry_date": expiry_date,
                 "frequency": frequency,
-                "renewal_url": "https://beat22.com/profile/subscription"
+                "renewal_url": "https://beat22.com/subscriptions"
             })
             
             # Send email
@@ -792,7 +811,7 @@ def send_license_renewal_reminders(db: Database):
         
         beats = list(db.beats.find({
             "_id": {"$in": list(beat_ids)}
-        }, ["_id", "title"]))
+        }, ["_id", "title", "serial_number"]))
         beats_dict = {b["_id"]: b for b in beats}
         
         for lic in licenses:
@@ -817,7 +836,7 @@ def send_license_renewal_reminders(db: Database):
                 "beat_title": beat_title,
                 "days_left": days_left,
                 "expiry_date": expiry_date,
-                "renewal_url": f"https://beat22.com/beat/{beat['_id']}"
+                "renewal_url": f"https://beat22.com/bt-{beat['serial_number']}" if beat.get("serial_number") is not None else "https://beat22.com/orders"
             })
             
             sent = safe_send_mail(
@@ -1232,14 +1251,15 @@ def send_weekly_seller_reports(db: Database):
             "follower_count": follower_count,
             "weekly_cart_adds": weekly_cart_adds,
             "weekly_negotiations": weekly_negotiations,
-            "dashboard_url": "https://beat22.com/dashboard"
+            "dashboard_url": "https://beat22.com/dashboard/keyPerformanceIndicators"
         })
 
         sent = safe_send_mail(
             email,
             f"Your Weekly Recap: {weekly_plays} plays, {weekly_downloads} downloads",
             content,
-            context="weekly-seller-report"
+            context="weekly-seller-report",
+            sender=SENDER_REPORTS
         )
 
         if sent:
@@ -1274,6 +1294,472 @@ def _calc_change(current: int, previous: int) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Seller helpers
+# ---------------------------------------------------------------------------
+
+PAID_TIERS = ["tier1", "tier2"]
+
+
+def get_paid_seller_ids(db: Database, user_ids) -> set:
+    """User ids from the given set holding an active tier1/tier2 subscription."""
+    subs = list(db.subscriptions.find(
+        {"user": {"$in": list(user_ids)}, "status": {"$in": ["active", "activeTillCycleEnd"]}},
+        ["user", "razorpay_plan_id"]
+    ))
+    if not subs:
+        return set()
+
+    plan_ids = {s.get("razorpay_plan_id") for s in subs if s.get("razorpay_plan_id")}
+    paid_plan_ids = {p["razorpayPlanId"] for p in db.subscription_plan_v3s.find(
+        {"razorpayPlanId": {"$in": list(plan_ids)}, "tier": {"$in": PAID_TIERS}},
+        ["razorpayPlanId"]
+    )}
+    return {s["user"] for s in subs if s.get("razorpay_plan_id") in paid_plan_ids}
+
+
+def get_sellers_with_live_campaign(db: Database, user_ids, now: datetime) -> set:
+    """User ids from the given set with at least one campaign in a serving state."""
+    campaigns = db.ad_campaigns.find({
+        "owner": {"$in": list(user_ids)},
+        "active": {"$ne": False},
+        "status": "active",
+        "startAt": {"$lte": now},
+        "$or": [{"endAt": None}, {"endAt": {"$gte": now}}]
+    }, ["owner"])
+    return {c["owner"] for c in campaigns}
+
+
+def get_ad_wallet_balances(db: Database, user_ids) -> dict:
+    """Spendable ad wallet balance per user, credits and funded money combined."""
+    wallets = db.ad_user_wallets.find({"user": {"$in": list(user_ids)}}, ["user", "balance", "creditBalance"])
+    return {
+        w["user"]: round(float(w.get("creditBalance") or 0) + float(w.get("balance") or 0), 2)
+        for w in wallets
+    }
+
+
+def get_active_subscription_plans(db: Database) -> list:
+    """Currently sellable paid plans, cheapest first."""
+    plans = list(db.subscription_plan_v3s.find({"active": True, "tier": {"$in": PAID_TIERS}}))
+    plans.sort(key=lambda p: float(p.get("price") or 0))
+    return [{
+        "name": p.get("planName") or "",
+        "price": int(float(p.get("price") or 0)),
+        "frequency": p.get("frequency") or "",
+        "commission": int(float(p.get("sellerCommissionPercent") or 0)),
+        "offer": p.get("offerText") or ""
+    } for p in plans]
+
+
+def get_pending_setup_steps(producer: dict, user: dict) -> list:
+    """Setup steps a seller still has to finish before they can sell."""
+    store = producer.get("store") or {}
+    payment = store.get("payment") or {}
+    general = store.get("general") or {}
+    aadhaar = user.get("aadhaarVerification") or {}
+    passport = user.get("passportValidation") or {}
+
+    pending = []
+    if not payment.get("account_id"):
+        pending.append("Add your bank details")
+    if not general.get("name") or not general.get("artist_first_name"):
+        pending.append("Complete your store profile")
+    if aadhaar.get("verified") is not True and passport.get("verified") is not True:
+        pending.append("Verify your identity")
+    return pending
+
+
+# ---------------------------------------------------------------------------
+# Job 7: Seller upload nudges
+# ---------------------------------------------------------------------------
+
+UPLOAD_NUDGE_GAP_HOURS = 48
+
+
+def send_seller_upload_nudges(db: Database):
+    """Prompts a seller to promote a fresh upload, but only when that upload follows a
+    gap of at least 48 hours since their previous one.
+    Deduplication: upload_nudge_sent_at on producers, rolling 48 hours."""
+
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(hours=3)
+
+    recent = list(db.beats.aggregate([
+        {"$match": {
+            "createdAt": {"$gte": window_start},
+            "active": {"$ne": False},
+            "status": {"$ne": "draft"}
+        }},
+        {"$group": {"_id": "$owner", "latest": {"$max": "$createdAt"}, "count": {"$sum": 1}}}
+    ]))
+
+    if not recent:
+        print("  No uploads in window")
+        return
+
+    qualified = {}
+    for row in recent:
+        previous = db.beats.find_one(
+            {"owner": row["_id"], "active": {"$ne": False}, "createdAt": {"$lt": row["latest"]}},
+            sort=[("createdAt", -1)], projection={"createdAt": 1}
+        )
+        if previous is None or (row["latest"] - previous["createdAt"]) >= timedelta(hours=UPLOAD_NUDGE_GAP_HOURS):
+            qualified[row["_id"]] = row["count"]
+
+    if not qualified:
+        print("  No uploads clearing the 48 hour gap")
+        return
+
+    producers = list(db.producers.find({
+        "user": {"$in": list(qualified)},
+        "status": "approved",
+        "$or": [
+            {"upload_nudge_sent_at": {"$exists": False}},
+            {"upload_nudge_sent_at": {"$lt": now - timedelta(hours=UPLOAD_NUDGE_GAP_HOURS)}}
+        ]
+    }, ["_id", "user"]))
+
+    if not producers:
+        print("  All qualifying sellers are within cooldown")
+        return
+
+    seller_ids = [p["user"] for p in producers]
+    users = {u["_id"]: u for u in db.users.find(
+        {"_id": {"$in": seller_ids}, "active": {"$ne": False}}, ["_id", "email", "name"]
+    )}
+    paid_ids = get_paid_seller_ids(db, seller_ids)
+    campaigning_ids = get_sellers_with_live_campaign(db, seller_ids, now)
+    wallets = get_ad_wallet_balances(db, seller_ids)
+
+    ads_template = jinja_env.get_template("seller-upload-ads.html")
+    upgrade_template = jinja_env.get_template("seller-upload-upgrade.html")
+    active_plans = get_active_subscription_plans(db)
+    total_sent = 0
+
+    for producer in producers:
+        seller_id = producer["user"]
+        user = users.get(seller_id)
+        if not user or not user.get("email"):
+            continue
+
+        if seller_id in campaigning_ids:
+            continue
+
+        name = user.get("name") or "there"
+        beat_count = qualified.get(seller_id, 1)
+        beats_label = "beat" if beat_count == 1 else "beats"
+
+        if seller_id in paid_ids:
+            has_funds = wallets.get(seller_id, 0) >= 1
+            content = ads_template.render({
+                "name": name,
+                "beat_count": beat_count,
+                "beats_label": beats_label,
+                "has_funds": has_funds,
+                "balance": wallets.get(seller_id, 0),
+                "campaign_url": "https://beat22.com/campaign/overview"
+            })
+            subject = f"Put your {beats_label} in front of buyers"
+            notif_type = "SELLER_UPLOAD_RUN_ADS" if has_funds else "SELLER_UPLOAD_ADD_FUNDS"
+            message = (
+                f"You have ₹{wallets.get(seller_id, 0)} in your ad wallet. Promote your new {beats_label}."
+                if has_funds else
+                f"Add funds to your ad wallet to promote your new {beats_label}."
+            )
+            path = "/campaign/overview"
+        else:
+            content = upgrade_template.render({
+                "name": name,
+                "beat_count": beat_count,
+                "beats_label": beats_label,
+                "plans": active_plans,
+                "plans_url": "https://beat22.com/subscriptions"
+            })
+            subject = f"Sell more from your new {beats_label}"
+            notif_type = "SELLER_UPLOAD_UPGRADE"
+            message = f"Upgrade your plan to earn more from your new {beats_label}."
+            path = "/subscriptions"
+
+        sent = safe_send_mail(user["email"], subject, content, context="seller-upload-nudge")
+
+        if sent:
+            db.producers.update_one({"_id": producer["_id"]}, {"$set": {"upload_nudge_sent_at": now}})
+            create_notification(db, seller_id, notif_type, {"beatCount": beat_count, "path": path}, message)
+            total_sent += 1
+
+    print(f"  Total seller upload nudges sent: {total_sent}")
+
+
+# ---------------------------------------------------------------------------
+# Job 8: Seller account setup nudges
+# ---------------------------------------------------------------------------
+
+SETUP_SWEEP_COOLDOWN_DAYS = 5
+# The sweep has no natural bound, so cap a run rather than fan out across the table.
+SETUP_SWEEP_MAX_PRODUCERS = 500
+
+
+def send_account_setup_nudges(db: Database):
+    """Day 1 and day 3 nudges for new sellers who have not finished setup, plus a
+    Saturday sweep of everyone still incomplete.
+    Deduplication: per-tier flags, plus a shared setup_nudge_sent_at the sweep respects."""
+
+    now = datetime.now(timezone.utc)
+    template = jinja_env.get_template("account-setup-incomplete.html")
+    total_sent = 0
+
+    tiers = [
+        {"flag": "setup_nudge_d1_sent_at", "days": 1},
+        {"flag": "setup_nudge_d3_sent_at", "days": 3}
+    ]
+
+    batches = []
+    for tier in tiers:
+        window_end = now - timedelta(days=tier["days"])
+        window_start = window_end - timedelta(hours=3)
+        batches.append((tier["flag"], list(db.producers.find({
+            "createdAt": {"$gte": window_start, "$lt": window_end},
+            "status": "approved",
+            tier["flag"]: {"$exists": False}
+        }))))
+
+    if now.weekday() == 5 and 9 <= now.hour <= 12:
+        batches.append((None, list(db.producers.find({
+            "status": "approved",
+            "$or": [
+                {"setup_nudge_sent_at": {"$exists": False}},
+                {"setup_nudge_sent_at": {"$lt": now - timedelta(days=SETUP_SWEEP_COOLDOWN_DAYS)}}
+            ]
+        }).sort("createdAt", -1).limit(SETUP_SWEEP_MAX_PRODUCERS))))
+
+    notified = set()
+
+    for tier_flag, producers in batches:
+        producers = [p for p in producers if p["_id"] not in notified]
+        if not producers:
+            continue
+
+        seller_ids = [p["user"] for p in producers]
+        users = {u["_id"]: u for u in db.users.find(
+            {"_id": {"$in": seller_ids}, "active": {"$ne": False}}, ["_id", "email", "name", "aadhaarVerification", "passportValidation"]
+        )}
+
+        for producer in producers:
+            user = users.get(producer["user"])
+            if not user or not user.get("email"):
+                continue
+
+            pending = get_pending_setup_steps(producer, user)
+            if not pending:
+                continue
+
+            content = template.render({
+                "name": user.get("name") or "there",
+                "pending_steps": pending,
+                "setup_url": "https://beat22.com/studio-settings/account"
+            })
+
+            sent = safe_send_mail(
+                user["email"],
+                "Finish setting up your Beat22 seller account",
+                content,
+                context="account-setup-incomplete"
+            )
+
+            if sent:
+                notified.add(producer["_id"])
+                update = {"setup_nudge_sent_at": now}
+                if tier_flag:
+                    update[tier_flag] = now
+                db.producers.update_one({"_id": producer["_id"]}, {"$set": update})
+                create_notification(db, producer["user"], "ACCOUNT_SETUP_INCOMPLETE", {
+                    "pendingSteps": pending,
+                    "path": "/studio-settings/account"
+                }, f"{len(pending)} step(s) left before you can start selling.")
+                total_sent += 1
+
+    print(f"  Total account setup nudges sent: {total_sent}")
+
+
+# ---------------------------------------------------------------------------
+# Job 9: Ad campaigns stalled on an empty wallet
+# ---------------------------------------------------------------------------
+
+AD_FUNDS_COOLDOWN_HOURS = 24
+
+
+def send_ad_funds_exhausted_alerts(db: Database):
+    """Alerts sellers whose campaigns are still marked active but can no longer serve
+    because the ad wallet cannot cover a single impression.
+    Deduplication: ad_funds_alert_sent_at on producers, rolling 24 hours."""
+
+    now = datetime.now(timezone.utc)
+
+    campaigns = list(db.ad_campaigns.aggregate([
+        {"$match": {
+            "active": {"$ne": False},
+            "status": "active",
+            "startAt": {"$lte": now},
+            "$or": [{"endAt": None}, {"endAt": {"$gte": now}}]
+        }},
+        {"$lookup": {"from": "ad_user_wallets", "localField": "owner", "foreignField": "user", "as": "wallet"}},
+        {"$match": {"$expr": {"$and": [
+            {"$lt": [{"$ifNull": [{"$arrayElemAt": ["$wallet.creditBalance", 0]}, 0]}, "$cpi"]},
+            {"$lt": [{"$ifNull": [{"$arrayElemAt": ["$wallet.balance", 0]}, 0]}, "$cpi"]}
+        ]}}},
+        {"$group": {"_id": "$owner", "names": {"$push": "$name"}}}
+    ]))
+
+    if not campaigns:
+        print("  No campaigns stalled on funds")
+        return
+
+    seller_ids = [c["_id"] for c in campaigns]
+    producers = list(db.producers.find({
+        "user": {"$in": seller_ids},
+        "$or": [
+            {"ad_funds_alert_sent_at": {"$exists": False}},
+            {"ad_funds_alert_sent_at": {"$lt": now - timedelta(hours=AD_FUNDS_COOLDOWN_HOURS)}}
+        ]
+    }, ["_id", "user"]))
+
+    if not producers:
+        print("  All affected sellers are within cooldown")
+        return
+
+    users = {u["_id"]: u for u in db.users.find(
+        {"_id": {"$in": [p["user"] for p in producers]}, "active": {"$ne": False}}, ["_id", "email", "name", "mobile"]
+    )}
+    names_by_owner = {c["_id"]: c["names"] for c in campaigns}
+    template = jinja_env.get_template("ad-campaign-paused.html")
+    total_sent = 0
+
+    for producer in producers:
+        user = users.get(producer["user"])
+        if not user:
+            continue
+
+        campaign_names = names_by_owner.get(producer["user"], [])
+
+        if user.get("email"):
+            content = template.render({
+                "name": user.get("name") or "there",
+                "campaigns": campaign_names,
+                "wallet_url": "https://beat22.com/campaign/overview"
+            })
+
+            safe_send_mail(
+                user["email"],
+                "Your campaigns have stopped, add funds to resume",
+                content,
+                context="ad-funds-exhausted"
+            )
+
+        db.producers.update_one({"_id": producer["_id"]}, {"$set": {"ad_funds_alert_sent_at": now}})
+        create_notification(db, producer["user"], "AD_CAMPAIGN_PAUSED_FUNDS", {
+            "campaigns": campaign_names,
+            "path": "/campaign/overview"
+        }, "Your ad wallet is empty and your campaigns have stopped serving. Add funds to resume.")
+
+        mobile = user.get("mobile")
+        if mobile and mobile.get("isd") and mobile.get("number"):
+            to_number = normalize_whatsapp_number(mobile)
+            if to_number:
+                send_whatsapp(to_number=to_number, template_name="ad_campaign_paused", body_vars=[user.get("name") or "there"], button_vars=[])
+
+        total_sent += 1
+
+    print(f"  Total ad funds alerts sent: {total_sent}")
+
+
+# ---------------------------------------------------------------------------
+# Job 10: Daily ad performance notification
+# ---------------------------------------------------------------------------
+
+def send_daily_ad_metrics(db: Database):
+    """In-app only: yesterday's campaign performance for sellers who served ads.
+    Deduplication: ad_metrics_sent_at on producers, rolling 20 hours."""
+
+    now = datetime.now(timezone.utc)
+
+    if not (14 <= now.hour <= 16):
+        print("  Skipping, only runs in 14-16 UTC window (~8:30 PM IST)")
+        return
+
+    period_end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    period_start = period_end - timedelta(days=1)
+
+    # Only campaigns that billed an impression in the window have metrics to report.
+    owners = {c["_id"]: c["campaigns"] for c in db.ad_campaigns.aggregate([
+        {"$match": {"active": {"$ne": False}, "lastImpressionAt": {"$gte": period_start}}},
+        {"$group": {"_id": "$owner", "campaigns": {"$push": "$_id"}}}
+    ])}
+
+    if not owners:
+        print("  No campaigns")
+        return
+
+    producers = list(db.producers.find({
+        "user": {"$in": list(owners)},
+        "$or": [
+            {"ad_metrics_sent_at": {"$exists": False}},
+            {"ad_metrics_sent_at": {"$lt": now - timedelta(hours=20)}}
+        ]
+    }, ["_id", "user"]))
+
+    total_sent = 0
+
+    for producer in producers:
+        campaign_ids = owners.get(producer["user"]) or []
+        if not campaign_ids:
+            continue
+
+        rows = list(db.ad_events.aggregate([
+            {"$match": {
+                "campaign": {"$in": campaign_ids},
+                "createdAt": {"$gte": period_start, "$lt": period_end}
+            }},
+            {"$group": {
+                "_id": "$type",
+                "count": {"$sum": 1},
+                "spend": {"$sum": {"$ifNull": ["$cpiAtEvent", 0]}},
+                "revenue": {"$sum": {"$convert": {"input": "$meta.amount", "to": "double", "onError": 0, "onNull": 0}}}
+            }}
+        ]))
+
+        stats = {r["_id"]: r for r in rows}
+        impressions = stats.get("impression", {}).get("count", 0)
+        if not impressions:
+            continue
+
+        clicks = stats.get("click", {}).get("count", 0)
+        purchases = stats.get("purchase", {}).get("count", 0)
+        spend = round(stats.get("impression", {}).get("spend", 0), 2)
+        revenue = round(stats.get("purchase", {}).get("revenue", 0), 2)
+        ctr = round((clicks / impressions) * 100, 1) if impressions else 0
+
+        message = (
+            f"Yesterday: {impressions} impressions, {clicks} clicks ({ctr}% CTR), "
+            f"₹{spend} spent, {purchases} sale(s) worth ₹{revenue}."
+        )
+
+        create_notification(db, producer["user"], "AD_DAILY_METRICS", {
+            "impressions": impressions,
+            "clicks": clicks,
+            "ctr": ctr,
+            "spend": spend,
+            "purchases": purchases,
+            "revenue": revenue,
+            "path": "/campaign/overview"
+        }, message)
+
+        db.producers.update_one({"_id": producer["_id"]}, {"$set": {"ad_metrics_sent_at": now}})
+        total_sent += 1
+
+    print(f"  Total daily ad metrics sent: {total_sent}")
+
+
+# ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
 
@@ -1301,6 +1787,18 @@ def main():
 
     # Job 6: Weekly seller performance reports (gated internally to Friday 13-16 UTC)
     run_job("Weekly Seller Report", send_weekly_seller_reports, db)
+
+    # Job 7: Seller upload nudges (runs every 3h, 48h upload gap enforced internally)
+    run_job("Seller Upload Nudges", send_seller_upload_nudges, db)
+
+    # Job 8: Account setup nudges (day 1 / day 3, plus a Saturday 9-12 UTC sweep)
+    run_job("Account Setup Nudges", send_account_setup_nudges, db)
+
+    # Job 9: Ad campaigns stalled on an empty wallet (runs every 3h)
+    run_job("Ad Funds Exhausted", send_ad_funds_exhausted_alerts, db)
+
+    # Job 10: Daily ad performance notification (gated internally to 14-16 UTC)
+    run_job("Daily Ad Metrics", send_daily_ad_metrics, db)
 
     print("All jobs complete.")
 
